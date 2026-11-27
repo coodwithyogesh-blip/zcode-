@@ -227,6 +227,24 @@ async def upload_knowledge(files: list[UploadFile] = File(...)):
         results.append(index_text(file.filename or "upload.txt", raw.decode("utf-8", errors="replace"), "upload"))
     return {"indexed": results}
 
+@app.post("/api/workspace/upload", dependencies=[Depends(require_access)])
+async def upload_workspace_files(files: list[UploadFile] = File(...)):
+    results = []
+    allowed = {".txt", ".md", ".json", ".csv", ".html", ".htm", ".xml", ".yaml", ".yml", ".py", ".js", ".ts", ".css", ".java", ".c", ".cpp", ".go", ".rs", ".php", ".log"}
+    for file in files:
+        name = Path(file.filename or "").name
+        suffix = Path(name).suffix.lower()
+        if suffix not in allowed:
+            raise HTTPException(415, f"Unsupported workspace file type: {suffix or 'unknown'}")
+        raw = await file.read(1_000_001)
+        if len(raw) > 1_000_000:
+            raise HTTPException(413, f"{name} exceeds the 1 MB limit.")
+        target = safe_path(WORK_DIR, name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+        results.append({"path": name, "bytes": len(raw)})
+    return {"uploaded": results}
+
 @app.post("/api/knowledge/url", dependencies=[Depends(require_access)])
 def learn_url(body: UrlRequest):
     try:
