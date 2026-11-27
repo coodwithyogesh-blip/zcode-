@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const scripts = [...html.matchAll(/<script>([\\s\\S]*?)<\\/script>/gi)];
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
 assert.equal(scripts.length, 1, 'Expected exactly one inline application script');
 new Function(scripts[0][1]);
-const ids = [...html.matchAll(/\\bid="([^"]+)"/g)].map(m => m[1]);
+const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
 assert.equal(ids.length, new Set(ids).size, 'HTML contains duplicate IDs');
 for (const id of ['view-home','view-chat','view-knowledge','view-models','view-security','messages','prompt','fileInput','provider','apiKey']) {
   assert.ok(ids.includes(id), `Missing required UI element: ${id}`);
