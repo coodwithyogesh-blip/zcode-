@@ -40,6 +40,11 @@ class AgentSafetyTests(unittest.TestCase):
         self.assertTrue(results)
         self.assertEqual(results[0]['source'], 'owasp.txt')
 
+    def test_inspect_url_requires_written_scope(self):
+        result = main.run_tool('inspect_url', {'url':'https://example.com'}, False, '')
+        self.assertIn('error', result)
+        self.assertIn('authorized scope', result['error'])
+
     def test_private_urls_are_rejected(self):
         with self.assertRaises(ValueError):
             main.safe_public_url('https://127.0.0.1/admin')
