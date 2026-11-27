@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: khuda-ai-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: KHUDA_ACCESS_TOKEN
+        generateValue: true
+      - key: KHUDA_DATA_DIR
+        value: /opt/render/project/src/khuda_workspace
+      - key: KHUDA_CORS_ORIGINS
+        value: https://coodwithyogesh-blip.github.io
