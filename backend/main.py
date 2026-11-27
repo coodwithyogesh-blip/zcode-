@@ -119,10 +119,12 @@ def safe_public_url(url: str) -> str:
 def fetch_public_page(url: str, max_bytes: int = 500_000) -> str:
     safe_public_url(url)
     request = urllib.request.Request(url, headers={"User-Agent": "KHUDA-AI-Research/0.1", "Accept": "text/html,text/plain"})
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+    opener = urllib.request.build_opener(NoRedirect)
     try:
-        with urllib.request.urlopen(request, timeout=12) as response:
-            final_url = response.geturl()
-            safe_public_url(final_url)
+        with opener.open(request, timeout=12) as response:
             content_type = response.headers.get("Content-Type", "")
             if not any(x in content_type for x in ("text/html", "text/plain", "application/json", "text/markdown")):
                 raise ValueError("URL does not return a supported text content type.")
@@ -132,7 +134,7 @@ def fetch_public_page(url: str, max_bytes: int = 500_000) -> str:
     text = raw.decode("utf-8", errors="replace")
     text = re.sub(r"(?is)<(script|style|noscript).*?>.*?</\\1>", " ", text)
     text = re.sub(r"(?s)<[^>]+>", " ", text)
-    return re.sub(r"\\s+", " ", text).strip()
+    return re.sub(r"\s+", " ", text).strip()
 
 def model_turn(config: ModelConfig, system: str, messages: list[dict[str, str]]) -> str:
     import urllib.request
