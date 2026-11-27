@@ -8,6 +8,7 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,8 @@ DATA_DIR = Path(os.getenv("KHUDA_DATA_DIR", str(APP_ROOT / "khuda_workspace"))).
 KNOWLEDGE_DIR = DATA_DIR / "knowledge"
 WORK_DIR = DATA_DIR / "workspace"
 REPORT_DIR = DATA_DIR / "reports"
-for folder in (KNOWLEDGE_DIR, WORK_DIR, REPORT_DIR):
+HISTORY_DIR = DATA_DIR / "history"
+for folder in (KNOWLEDGE_DIR, WORK_DIR, REPORT_DIR, HISTORY_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="KHUDA AI Agent API", version="0.1.0")
@@ -261,6 +263,7 @@ def run_agent(body: AgentRequest):
     context = retrieve(body.task, 6)
     transcript = [{"role": "user", "content": json.dumps({"task": body.task, "authorized_scope": body.scope, "relevant_knowledge": context}, ensure_ascii=False)}]
     events = []
+    task_id = uuid.uuid4().hex
     for step in range(body.max_steps):
         try:
             raw = model_turn(body.model, SYSTEM_PROMPT, transcript)
@@ -272,12 +275,29 @@ def run_agent(body: AgentRequest):
         name = str(action.get("action", ""))
         message = str(action.get("message", ""))[:500]
         if name == "finish":
-            return {"status": "completed", "summary": str(action.get("args", {}).get("summary", message)), "events": events, "steps": step + 1}
+            summary = str(action.get("args", {}).get("summary", message))
+            record = {"task_id": task_id, "created_at": datetime.now(timezone.utc).isoformat(), "task": body.task, "status": "completed", "summary": summary, "events": events}
+            (HISTORY_DIR / (task_id + ".json")).write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+            return {"task_id": task_id, "status": "completed", "summary": summary, "events": events, "steps": step + 1}
         result = run_tool(name, action.get("args", {}), body.allow_workspace_changes, body.scope)
         events.append({"step": step + 1, "action": name, "message": message, "result": result})
         transcript.append({"role": "assistant", "content": raw})
         transcript.append({"role": "user", "content": "TOOL_RESULT: " + json.dumps(result, ensure_ascii=False)[:12000] + ". Continue the task using the available tools, or finish."})
-    return {"status": "step_limit", "summary": "Reached the configured step limit; review the collected evidence and run a follow-up task if needed.", "events": events, "steps": body.max_steps}
+    summary = "Reached the configured step limit; review the collected evidence and run a follow-up task if needed."
+    record = {"task_id": task_id, "created_at": datetime.now(timezone.utc).isoformat(), "task": body.task, "status": "step_limit", "summary": summary, "events": events}
+    (HISTORY_DIR / (task_id + ".json")).write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+    return {"task_id": task_id, "status": "step_limit", "summary": summary, "events": events, "steps": body.max_steps}
+
+@app.get("/api/agent/history", dependencies=[Depends(require_access)])
+def agent_history():
+    items = []
+    for path in sorted(HISTORY_DIR.glob("*.json"), reverse=True)[:30]:
+        try:
+            item = json.loads(path.read_text(encoding="utf-8"))
+            items.append({k: item.get(k) for k in ("task_id", "created_at", "task", "status", "summary")})
+        except (OSError, json.JSONDecodeError):
+            continue
+    return {"history": items}
 
 @app.post("/api/workspace/write", dependencies=[Depends(require_access)])
 def workspace_write(body: FileRequest):
