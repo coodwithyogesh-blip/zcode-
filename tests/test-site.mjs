@@ -10,7 +10,7 @@ assert.equal(ids.length, new Set(ids).size, 'HTML contains duplicate IDs');
 for (const id of ['view-home','view-agent','view-chat','view-knowledge','view-models','view-security','messages','prompt','fileInput','provider','apiKey']) {
   assert.ok(ids.includes(id), `Missing required UI element: ${id}`);
 }
-for (const feature of ['askModel','retrieve','uploadFiles','attachFolder','learnUrl','exportData']) {
+for (const feature of ['askModel','retrieve','uploadFiles','attachFolder','learnUrl','exportData','runAgent','uploadWorkspaceFiles','learnBackendUrl','loadAgentHistory']) {
   assert.ok(scripts[0][1].includes(`function ${feature}`) || scripts[0][1].includes(`async function ${feature}`), `Missing feature function: ${feature}`);
 }
 assert.ok(!/AIza[0-9A-Za-z_-]{30,}/.test(html), 'A Google API key must never be committed to frontend source');
