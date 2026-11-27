@@ -7,7 +7,7 @@ assert.equal(scripts.length, 1, 'Expected exactly one inline application script'
 new Function(scripts[0][1]);
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
 assert.equal(ids.length, new Set(ids).size, 'HTML contains duplicate IDs');
-for (const id of ['view-home','view-chat','view-knowledge','view-models','view-security','messages','prompt','fileInput','provider','apiKey']) {
+for (const id of ['view-home','view-agent','view-chat','view-knowledge','view-models','view-security','messages','prompt','fileInput','provider','apiKey']) {
   assert.ok(ids.includes(id), `Missing required UI element: ${id}`);
 }
 for (const feature of ['askModel','retrieve','uploadFiles','attachFolder','learnUrl','exportData']) {
