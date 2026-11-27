@@ -37,6 +37,8 @@ Knowledge ingestion is retrieval-based learning (RAG), not model-weight fine-tun
 - `GET /api/health` — service status.
 - `POST /api/knowledge/upload` — multipart text/code document ingestion (1 MB per file).
 - `POST /api/knowledge/url` — fetch and index public HTTPS text pages.
+- `POST /api/workspace/upload` — upload source files for the agent to inspect.
+- `GET /api/agent/history` — retrieve the latest 30 saved task summaries.
 - `POST /api/agent/run` — run a bounded tool loop with Gemini, OpenAI, or an OpenAI-compatible provider.
 - `GET /api/workspace/files` — list workspace files.
 - `POST /api/workspace/write` — explicitly write a workspace file.
