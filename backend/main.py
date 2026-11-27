@@ -132,7 +132,7 @@ def fetch_public_page(url: str, max_bytes: int = 500_000) -> str:
     except (urllib.error.URLError, TimeoutError) as exc:
         raise ValueError(f"URL fetch failed: {exc}") from exc
     text = raw.decode("utf-8", errors="replace")
-    text = re.sub(r"(?is)<(script|style|noscript).*?>.*?</\\1>", " ", text)
+    text = re.sub(r"(?is)<(script|style|noscript).*?>.*?</\1>", " ", text)
     text = re.sub(r"(?s)<[^>]+>", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
