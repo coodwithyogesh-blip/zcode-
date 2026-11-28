@@ -183,14 +183,31 @@ def model_turn(config: ModelConfig, system: str, messages: list[dict[str, str]])
             base = "https://api.openai.com/v1"
         payload = {"model": config.model, "temperature": 0.2, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": system}] + messages}
         req = urllib.request.Request(base + "/chat/completions", data=json.dumps(payload).encode(), headers={"Content-Type": "application/json", "Authorization": "Bearer " + config.api_key}, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=45) as response:
-            data = json.loads(response.read().decode())
-    except urllib.error.HTTPError as exc:
-        detail = exc.read(1500).decode(errors="replace")
-        raise RuntimeError(f"Model API returned HTTP {exc.code}: {detail}") from exc
-    except (urllib.error.URLError, TimeoutError) as exc:
-        raise RuntimeError(f"Model request failed: {exc}") from exc
+    last_error = None
+    for attempt in range(2):
+        try:
+            # Agent reasoning may include retrieved training context; allow a longer
+            # provider response window and one retry for transient network timeouts.
+            with urllib.request.urlopen(req, timeout=90) as response:
+                data = json.loads(response.read().decode())
+            last_error = None
+            break
+        except urllib.error.HTTPError as exc:
+            detail = exc.read(1500).decode(errors="replace")
+            # Retry only transient provider/server overload responses.
+            if exc.code in {429, 500, 502, 503, 504} and attempt == 0:
+                time.sleep(2)
+                last_error = RuntimeError(f"Model API returned HTTP {exc.code}: {detail}")
+                continue
+            raise RuntimeError(f"Model API returned HTTP {exc.code}: {detail}") from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last_error = exc
+            if attempt == 0:
+                time.sleep(2)
+                continue
+            raise RuntimeError(f"Model request timed out or failed after retry: {exc}") from exc
+    if last_error is not None:
+        raise RuntimeError(f"Model request failed: {last_error}") from last_error
     if config.provider == "gemini":
         return data["candidates"][0]["content"]["parts"][0]["text"]
     return data["choices"][0]["message"]["content"]
