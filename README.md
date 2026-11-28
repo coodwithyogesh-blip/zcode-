@@ -11,7 +11,7 @@ KHUDA AI is evolving from a static chat page into a personal agent with persiste
 - `khuda_workspace/reports`: generated reports.
 - `render.yaml`: Render Blueprint configuration.
 
-Knowledge ingestion is retrieval-based learning (RAG), not model-weight fine-tuning. Original text, source metadata, and chunks persist in the backend data directory and can be retrieved in later tasks.
+Knowledge ingestion is retrieval-based learning (RAG), not model-weight fine-tuning. Original text, source metadata, and chunks persist in the backend data directory. Every agent run receives up to 24,000 characters of source-labelled saved training material plus task-relevant retrieved excerpts. Upload project/training files in the Agent panel, then press **Sync workspace to training** to promote them into this knowledge context.
 
 ## Deploy on Render
 
@@ -27,7 +27,9 @@ Knowledge ingestion is retrieval-based learning (RAG), not model-weight fine-tun
 
 - Upload text/code files into persistent backend knowledge.
 - Import public HTTPS text pages.
-- Retrieve matching knowledge for each task.
+- Retrieve matching knowledge for each task and automatically include a bounded, source-labelled training context in every agent run.
+- Promote uploaded workspace files into persistent training knowledge with **Sync workspace to training**.
+- Follow user-supplied task methods, project conventions, and report formats while keeping authorization and safety boundaries in force.
 - Run a bounded agent loop that can list/read workspace files, search learned knowledge, write approved files, save reports, and passively inspect an explicitly scoped public URL.
 - Select the AI provider and model from the existing AI Models panel.
 - Agent writes are off by default and require the per-task permission checkbox.
@@ -36,6 +38,7 @@ Knowledge ingestion is retrieval-based learning (RAG), not model-weight fine-tun
 
 - `GET /api/health` — service status.
 - `POST /api/knowledge/upload` — multipart text/code document ingestion (1 MB per file).
+- `POST /api/knowledge/index-workspace` — index uploaded workspace text/code files as training knowledge.
 - `POST /api/knowledge/url` — fetch and index public HTTPS text pages.
 - `POST /api/workspace/upload` — upload source files for the agent to inspect.
 - `GET /api/agent/history` — retrieve the latest 30 saved task summaries.
