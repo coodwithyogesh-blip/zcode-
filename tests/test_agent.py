@@ -49,5 +49,21 @@ class AgentSafetyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             main.safe_public_url('https://127.0.0.1/admin')
 
+
+    def test_workspace_files_can_be_promoted_to_training_knowledge(self):
+        (main.WORK_DIR / 'KHUDA_training.md').write_text('Follow my supplied review workflow.', encoding='utf-8')
+        indexed = main.index_workspace_files()
+        self.assertEqual(len(indexed), 1)
+        self.assertEqual(indexed[0]['name'], 'KHUDA_training.md')
+        training = main.training_context()
+        self.assertIn('Follow my supplied review workflow.', training)
+        self.assertIn('KHUDA_training.md', training)
+
+    def test_agent_training_context_includes_saved_knowledge(self):
+        main.index_text('my-rules.md', 'Use the user's project conventions and report test evidence.', 'test')
+        training = main.training_context()
+        self.assertIn('my-rules.md', training)
+        self.assertIn("report test evidence", training)
+
 if __name__ == '__main__':
     unittest.main()
